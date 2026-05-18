@@ -13,13 +13,13 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,14 +52,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import android.media.SoundPool
 import android.media.AudioAttributes
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
@@ -133,20 +132,21 @@ private fun TapWarGame() {
         } catch (_: Throwable) {
         }
     }
-            GameZone(
     DisposableEffect(Unit) {
         onDispose {
             try { soundPool.release() } catch (_: Throwable) {}
         }
     }
+            GameZone(
                 label = stringResource(R.string.blue_player),
-                weight = blueWeight,
+                zoneWeight = blueWeight,
                 enabled = !isGameOver,
                 background = Brush.verticalGradient(
                     listOf(Color(0xFF58A6FF), Color(0xFF1D4ED8))
                 ),
                 textRotation = 180f,
                 onTap = {
+                    if (clickSoundId != 0) soundPool.play(clickSoundId, 1f, 1f, 1, 0, 1f)
                     if (score > 0) {
                         score -= 1
                     }
@@ -155,14 +155,14 @@ private fun TapWarGame() {
 
             GameZone(
                 label = stringResource(R.string.red_player),
-                weight = redWeight,
+                zoneWeight = redWeight,
                 enabled = !isGameOver,
-                        if (clickSoundId != 0) soundPool.play(clickSoundId, 1f, 1f, 1, 0, 1f)
                 background = Brush.verticalGradient(
                     listOf(Color(0xFFF97316), Color(0xFFEF4444))
                 ),
                 textRotation = 0f,
                 onTap = {
+                    if (clickSoundId != 0) soundPool.play(clickSoundId, 1f, 1f, 1, 0, 1f)
                     if (score < 100) {
                         score += 1
                     }
@@ -173,7 +173,6 @@ private fun TapWarGame() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                        if (clickSoundId != 0) soundPool.play(clickSoundId, 1f, 1f, 1, 0, 1f)
                 .padding(horizontal = 24.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -200,9 +199,9 @@ private fun TapWarGame() {
 }
 
 @Composable
-private fun GameZone(
+private fun ColumnScope.GameZone(
     label: String,
-    weight: Float,
+    zoneWeight: Float,
     enabled: Boolean,
     background: Brush,
     textRotation: Float,
@@ -219,7 +218,7 @@ private fun GameZone(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .weight(weight)
+            .weight(zoneWeight)
             .background(background)
             .pointerInput(enabled) {
                 if (!enabled) return@pointerInput
