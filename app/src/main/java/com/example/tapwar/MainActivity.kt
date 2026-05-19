@@ -92,10 +92,20 @@ private fun TapWarTheme(content: @Composable () -> Unit) {
 @Composable
 private fun TapWarGame() {
     var score by rememberSaveable { mutableIntStateOf(50) }
+    var redWins by rememberSaveable { mutableIntStateOf(0) }
+    var blueWins by rememberSaveable { mutableIntStateOf(0) }
 
     val isGameOver by remember { derivedStateOf { score <= 0 || score >= 100 } }
-    val redWeight by remember(score) { derivedStateOf { score.toFloat() } }
-    val blueWeight by remember(score) { derivedStateOf { (100 - score).toFloat() } }
+    val redWeight by remember(score) { derivedStateOf { score.toFloat().coerceAtLeast(0.001f) } }
+    val blueWeight by remember(score) { derivedStateOf { (100 - score).toFloat().coerceAtLeast(0.001f) } }
+
+    LaunchedEffect(isGameOver) {
+        if (isGameOver) {
+            if (score >= 100) redWins++
+            else if (score <= 0) blueWins++
+        }
+    }
+
     val overlayAlpha by animateFloatAsState(
         targetValue = if (isGameOver) 1f else 0.72f,
         label = "overlayAlpha"
@@ -148,7 +158,9 @@ private fun TapWarGame() {
                 onTap = {
                     if (clickSoundId != 0) soundPool.play(clickSoundId, 1f, 1f, 1, 0, 1f)
                     if (score > 0) {
-                        score -= 1
+                        val isCrit = (0..100).random() < 15
+                        val power = if (isCrit) 15 else 5
+                        score = (score - power).coerceAtLeast(0)
                     }
                 }
             )
@@ -164,7 +176,9 @@ private fun TapWarGame() {
                 onTap = {
                     if (clickSoundId != 0) soundPool.play(clickSoundId, 1f, 1f, 1, 0, 1f)
                     if (score < 100) {
-                        score += 1
+                        val isCrit = (0..100).random() < 15
+                        val power = if (isCrit) 15 else 5
+                        score = (score + power).coerceAtMost(100)
                     }
                 }
             )
@@ -181,7 +195,7 @@ private fun TapWarGame() {
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
-                ScoreChip(score = score, alpha = overlayAlpha)
+                ScoreChip(score = score, alpha = overlayAlpha, redWins = redWins, blueWins = blueWins)
             }
 
             AnimatedVisibility(
@@ -191,6 +205,8 @@ private fun TapWarGame() {
             ) {
                 GameOverCard(
                     winnerText = winnerText.orEmpty(),
+                    redWins = redWins,
+                    blueWins = blueWins,
                     reset = { score = 50 }
                 )
             }
@@ -237,7 +253,7 @@ private fun ColumnScope.GameZone(
                         rippleActive = 1
                         scope.launch {
                             // keep ripple active briefly
-                            delay(240)
+                            delay(120)
                             rippleActive = 0
                         }
                         tryAwaitRelease()
@@ -277,7 +293,7 @@ private fun ColumnScope.GameZone(
 }
 
 @Composable
-private fun ScoreChip(score: Int, alpha: Float) {
+private fun ScoreChip(score: Int, alpha: Float, redWins: Int, blueWins: Int) {
     Box(
         modifier = Modifier
             .background(
@@ -288,6 +304,14 @@ private fun ScoreChip(score: Int, alpha: Float) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "B: $blueWins   |   R: $redWins",
+                color = Color.White.copy(alpha = 0.8f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.score_label),
                 color = Color.White.copy(alpha = 0.55f),
@@ -309,6 +333,8 @@ private fun ScoreChip(score: Int, alpha: Float) {
 @Composable
 private fun GameOverCard(
     winnerText: String,
+    redWins: Int,
+    blueWins: Int,
     reset: () -> Unit
 ) {
     Column(
@@ -327,6 +353,13 @@ private fun GameOverCard(
             fontSize = 30.sp,
             fontWeight = FontWeight.Black,
             letterSpacing = 1.sp
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Total Wins  ->  Blue: $blueWins   Red: $redWins",
+            color = Color(0xFF374151),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.height(24.dp))
         Button(
